@@ -14,14 +14,14 @@ namespace AlfaParser
         public AlfaItem(string input)
         {
             RawString = input;
-            string[] parts = input.Split(';');
+            string[] parts = input.Split(CommandLineArguments.Instance.InputSeparator.ToCharArray());
 
             AccountType = parts[0];
             AccountNumber = parts[1];
             Currency = parts[2];
             Reference = parts[4];
 
-            OriginalDate = DateTime.Parse(parts[3]);
+            StatementDate = DateTime.Parse(parts[3]);
             Description = parts[5];
             Debit = decimal.Parse(parts[6]);
             Credit = decimal.Parse(parts[7]);
@@ -29,21 +29,21 @@ namespace AlfaParser
             var match = _re.Matches(Description);
             if (match.Count == 0)
             {
-                Date1 = Date1Reversed = Date2 = Date2Reversed = OriginalDate;
+                Date1 = Date1Reversed = TransactionDate = TransactionDateReversed = StatementDate;
             }
             else
             {
                 if (match.Count >= 1)
                 {
                     var result = Parse(match[0].Value);
-                    Date1 = Date2 = result.Item1;
-                    Date1Reversed = Date2Reversed = result.Item2;
+                    Date1 = TransactionDate = result.Item1;
+                    Date1Reversed = TransactionDateReversed = result.Item2;
                 }
                 if (match.Count == 2)
                 {
                     var result = Parse(match[1].Value);
-                    Date2 = result.Item1;
-                    Date2Reversed = result.Item2;
+                    TransactionDate = result.Item1;
+                    TransactionDateReversed = result.Item2;
                 }
             }
         }
@@ -53,7 +53,7 @@ namespace AlfaParser
             DateTime first, second;
 
             if (!DateTime.TryParse(raw, out first))
-                first = OriginalDate;
+                first = StatementDate;
             string[] parts = raw.Split('.');
             if (parts[2].Length == 2)
             {
@@ -63,7 +63,7 @@ namespace AlfaParser
             }
 
             if (!DateTime.TryParse(string.Join(".", parts), out second))
-                second = OriginalDate;
+                second = StatementDate;
 
             return  new Tuple<DateTime, DateTime>(first, second);
         }
@@ -77,7 +77,7 @@ namespace AlfaParser
         #region Trash
 
         /// <summary>
-        /// Возвращает или устанавливает тип счёта.
+        /// Get or set account type.
         /// </summary>
         public string AccountType
         {
@@ -86,7 +86,7 @@ namespace AlfaParser
         }
 
         /// <summary>
-        /// Возвращает или устанавливает номер счёта.
+        /// Get or set account number.
         /// </summary>
         public string AccountNumber
         {
@@ -95,7 +95,7 @@ namespace AlfaParser
         }
 
         /// <summary>
-        /// Возвращает или устанавливает валюту.
+        /// Get or set currency.
         /// </summary>
         public string Currency
         {
@@ -104,7 +104,7 @@ namespace AlfaParser
         }
 
         /// <summary>
-        /// Возвращает или устанавливает референс подводки.
+        /// Get or set reference.
         /// </summary>
         public string Reference
         {
@@ -118,16 +118,16 @@ namespace AlfaParser
 
 
         /// <summary>
-        /// Возвращает или устанавливает оригинальную дату.
+        /// Get or set original date.
         /// </summary>
-        public DateTime OriginalDate
+        public DateTime StatementDate
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Возвращает или устанавливает описание.
+        /// Get or set description.
         /// </summary>
         public string Description
         {
@@ -136,7 +136,7 @@ namespace AlfaParser
         }
 
         /// <summary>
-        /// Возвращает или устанавливает первую дату.
+        /// Get or set first date.
         /// </summary>
         public DateTime Date1
         {
@@ -145,7 +145,7 @@ namespace AlfaParser
         }
 
         /// <summary>
-        /// Возвращает или устанавливает первую дату в обратном порядке.
+        /// Get or set first date in reversed order.
         /// </summary>
         public DateTime Date1Reversed
         {
@@ -154,25 +154,25 @@ namespace AlfaParser
         }
 
         /// <summary>
-        /// Возвращает или устанавливает вторую дату.
+        /// Get or set second date.
         /// </summary>
-        public DateTime Date2
+        public DateTime TransactionDate
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Возвращает или устанавливает вторую дату в обратном порядке.
+        /// Get or set second date in reversed order.
         /// </summary>
-        public DateTime Date2Reversed
+        public DateTime TransactionDateReversed
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Возвращает или устанавливает приход.
+        /// Get or set debit.
         /// </summary>
         public decimal Debit
         {
@@ -181,7 +181,7 @@ namespace AlfaParser
         }
 
         /// <summary>
-        /// Возвращает или устанавливает расход.
+        /// Get or set credit.
         /// </summary>
         public decimal Credit
         {
@@ -189,18 +189,28 @@ namespace AlfaParser
             set;
         }
 
+        public void AdjustTranscationDate(DateTime minDate, DateTime maxDate)
+        {
+            if (TransactionDate < minDate || TransactionDate > maxDate)
+                TransactionDate = TransactionDateReversed;
+        }
+
         public override string ToString()
         {
             string[] parts = new[]
             {
-                OriginalDate.ToShortDateString(),
+                AccountType,
+                AccountNumber,
+                Currency,
+                StatementDate.ToShortDateString(),
+                Reference,
                 Description,
                 Date1.ToShortDateString(),
-                Date2.ToShortDateString(),
+                TransactionDate.ToShortDateString(),
                 Debit.ToString(),
                 Credit.ToString(),
                 Date1Reversed.ToShortDateString(),
-                Date2Reversed.ToShortDateString()
+                TransactionDateReversed.ToShortDateString()
             };
             return string.Join(";", parts);
         }
