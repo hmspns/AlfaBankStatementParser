@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -7,9 +8,10 @@ using System.Threading.Tasks;
 
 namespace AlfaParser
 {
+    [DebuggerDisplay("Original date: {StatementDate}, Parsed date: {TransactionDate}, Description: {Description}")]
     class AlfaItem
     {
-        private static Regex _re = new Regex(@"[\d]{2}\.[\d]{2}\.[\d]{2,4}", RegexOptions.Singleline | RegexOptions.Compiled);
+        private static readonly Regex _dateRegex = new Regex(@"[\d]{2}\.[\d]{2}\.[\d]{2,4}", RegexOptions.Singleline | RegexOptions.Compiled);
 
         public AlfaItem(string input)
         {
@@ -26,7 +28,7 @@ namespace AlfaParser
             Debit = decimal.Parse(parts[6]);
             Credit = decimal.Parse(parts[7]);
 
-            var match = _re.Matches(Description);
+            MatchCollection match = _dateRegex.Matches(Description);
             if (match.Count == 0)
             {
                 Date1 = Date1Reversed = TransactionDate = TransactionDateReversed = StatementDate;
@@ -191,7 +193,7 @@ namespace AlfaParser
 
         public void AdjustTranscationDate(DateTime minDate, DateTime maxDate)
         {
-            if (TransactionDate < minDate || TransactionDate > maxDate)
+            if (TransactionDate < minDate || TransactionDate > maxDate || TransactionDate.Year != StatementDate.Year)
                 TransactionDate = TransactionDateReversed;
         }
 

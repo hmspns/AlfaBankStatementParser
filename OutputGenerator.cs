@@ -27,13 +27,30 @@ namespace AlfaParser
             using (StreamWriter sw = new StreamWriter(output, Encoding.UTF8))
             {
                 string s = CommandLineArguments.Instance.OutputSeparator;
-                sw.WriteLine($"Тип счёта{s}Номер счёта{s}Валюта{s}Оригинальная дата операции{s}Референс проводки{s}Описание операции{s}Приход{s}Расход{s}Дата 1{s}Дата совершения операции{s}Обратная дата 1{s}Обратная дата 2");
+                string header = $"Тип счёта{s}Номер счёта{s}Валюта{s}Оригинальная дата операции{s}Референс проводки{s}Описание операции{s}Приход{s}Расход{s}Дата 1{s}Дата совершения операции{s}Обратная дата 1{s}Обратная дата 2";
+                sw.WriteLine(header);
 
-                _items.ToList().ForEach(i => i.AdjustTranscationDate(_minDate, _maxDate));
+                //_items.ForEach(i => i.AdjustTranscationDate(_minDate, _maxDate));
 
-                foreach (AlfaItem item in _items.OrderBy(i => i.TransactionDate))
+                List<AlfaItem> itemsInInterval = _items.Where(i => i.TransactionDate >= _minDate && i.TransactionDate <= _maxDate).ToList();
+                List<AlfaItem> itemsOutsideInterval = _items.Except(itemsInInterval).ToList();
+
+                //itemsInInterval.ForEach(i => i.AdjustTranscationDate(_minDate, _maxDate));
+                foreach (AlfaItem item in itemsInInterval.OrderBy(i => i.TransactionDate))
                 {
                     WriteItem(sw, item);
+                }
+                if (itemsOutsideInterval.Count > 0)
+                {
+                    //itemsOutsideInterval.ForEach(i => i.AdjustTranscationDate(_minDate, _maxDate));
+                    sw.WriteLine();
+                    sw.WriteLine("Данные, которые не попали в выборку");
+                    sw.WriteLine();
+                    sw.WriteLine(header);
+                    foreach (AlfaItem item in itemsOutsideInterval.OrderBy(i => i.TransactionDate))
+                    {
+                        WriteItem(sw, item);
+                    }
                 }
             }
         }
@@ -52,8 +69,8 @@ namespace AlfaParser
                 item.Credit.ToString(),
                 item.Date1.ToShortDateString(),
                 item.TransactionDate.ToShortDateString(),
-                item.Date1Reversed.ToShortDateString(),
-                item.TransactionDateReversed.ToShortDateString()
+                //item.Date1Reversed.ToShortDateString(),
+                //item.TransactionDateReversed.ToShortDateString()
             };
             writer.WriteLine(string.Join(CommandLineArguments.Instance.OutputSeparator, parts));
         }
